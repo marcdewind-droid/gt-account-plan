@@ -114,19 +114,131 @@ document.getElementById('topbarRight').innerHTML='<div class="topbar-user"><sele
 function switchSection(type,el){document.querySelectorAll('.section-tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.section-panel').forEach(p=>p.classList.remove('active'));el.classList.add('active');document.getElementById('panel-'+type).classList.add('active');renderSection(type)}
 function renderSection(type){const panel=document.getElementById('panel-'+type);if(!panel)return;
 switch(type){case 'research_feed':renderResearchFeed(panel);break;case 'dashboard_actions':renderDashboard(panel);break;case 'org_map':renderOrgMap(panel);break;case 'country_tracker':renderCountryTracker(panel);break;case 'revenue_model':renderRevenueModel(panel);break;case 'hypotheses':renderHypotheses(panel);break;case 'call_prep':renderCallPrep(panel);break;case 'risk_register':renderRiskRegister(panel);break;case 'competitive':renderCompetitive(panel);break;case 'proof_points':renderProofPoints(panel);break;case 'timeline':renderTimeline(panel);break;case 'action_plan':renderActionPlan(panel);break;case 'raci':renderRACI(panel);break}}
-function renderResearchFeed(panel){
-let html='<div class="card"><h2><span class="icon">📡</span> Research Feed <span style="font-size:11px;font-weight:400;color:#888;">Auto-updated daily</span></h2>';
-if(researchUpdates.length===0){html+='<div class="empty-state"><div class="icon">🔍</div><p>No research updates yet. The auto-research task will populate this daily.</p></div>'}
-else{researchUpdates.forEach(r=>{const catClass='cat-'+r.category;const scoreClass=r.relevance_score>=8?'score-high':r.relevance_score>=5?'score-medium':'score-low';
-const unreadClass=r.is_read?'':' unread';const date=new Date(r.fetched_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
-html+='<div class="research-item'+unreadClass+'" onclick="markRead(\''+r.id+'\',this)"><span class="research-category '+catClass+'">'+r.category+'</span><div class="research-title">'+r.title+'</div><div class="research-content">'+(r.content||'')+'</div><div class="research-meta"><span>'+date+(r.source_url?' · <a href="'+r.source_url+'" target="_blank" style="color:var(--maki-purple);">Source</a>':'')+'</span><span class="research-score '+scoreClass+'">Relevance: '+r.relevance_score+'/10</span></div></div>'})}
-html+='</div>';panel.innerHTML=html}
+function renderResearchFeed(panel) {
+      const data = sections.research_feed?.data || {};
+      const updates = data.updates || window.researchUpdates || [];
+      const catColors = {financial:'#2563eb',strategy:'#7c3aed',talent:'#059669',technology:'#d97706',partnerships:'#dc2626',market:'#0891b2'};
+      const catIcons = {financial:'\u{1F4CA}',strategy:'\u{1F3AF}',talent:'\u{1F465}',technology:'\u{1F4BB}',partnerships:'\u{1F91D}',market:'\u{1F30D}'};
+      let html = '<div class="card"><h2><span class="icon">\u{1F4E1}</span> Research Feed</h2>';
+      if (updates.length === 0) {
+        html += '<div style="text-align:center;padding:40px;color:#aaa;"><p style="font-size:2em;">\u{1F4E1}</p><p>No research updates yet.</p></div>';
+      } else {
+        const highImpact = updates.filter(u => u.impact === 'high').length;
+        const cats = [...new Set(updates.map(u => u.category))];
+        const latest = updates.reduce((a,b) => a.date > b.date ? a : b, updates[0]);
+        html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;">';
+        html += '<div style="background:#f8f7ff;padding:12px;border-radius:8px;text-align:center;"><div style="font-size:1.5em;font-weight:700;color:#5845C2;">' + updates.length + '</div><div style="font-size:0.8em;color:#666;">Total Updates</div></div>';
+        html += '<div style="background:#fef2f2;padding:12px;border-radius:8px;text-align:center;"><div style="font-size:1.5em;font-weight:700;color:#ef4444;">' + highImpact + '</div><div style="font-size:0.8em;color:#666;">High Impact</div></div>';
+        html += '<div style="background:#f0fdf4;padding:12px;border-radius:8px;text-align:center;"><div style="font-size:1.5em;font-weight:700;color:#059669;">' + cats.length + '</div><div style="font-size:0.8em;color:#666;">Categories</div></div>';
+        html += '<div style="background:#fffbeb;padding:12px;border-radius:8px;text-align:center;"><div style="font-size:0.85em;font-weight:700;color:#d97706;">' + (latest.date || 'N/A') + '</div><div style="font-size:0.8em;color:#666;">Latest</div></div>';
+        html += '</div>';
+        const sorted = [...updates].sort((a,b) => (b.date||'').localeCompare(a.date||''));
+        sorted.forEach(u => {
+          const cat = (u.category || 'market').toLowerCase();
+          const color = catColors[cat] || '#666';
+          const icon = catIcons[cat] || '\u{1F4CC}';
+          const impactColor = u.impact === 'high' ? '#ef4444' : u.impact === 'medium' ? '#f59e0b' : '#22c55e';
+          html += '<div style="border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:12px;">';
+          html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">';
+          html += '<span style="background:' + color + '22;color:' + color + ';padding:2px 10px;border-radius:12px;font-size:0.8em;font-weight:600;">' + icon + ' ' + cat.charAt(0).toUpperCase() + cat.slice(1) + '</span>';
+          html += '<span style="background:' + impactColor + '22;color:' + impactColor + ';padding:2px 8px;border-radius:10px;font-size:0.75em;font-weight:600;">' + (u.impact || 'medium').toUpperCase() + ' IMPACT</span>';
+          html += '<span style="margin-left:auto;color:#999;font-size:0.8em;">' + (u.date || '') + '</span>';
+          html += '</div>';
+          html += '<div style="font-weight:600;margin-bottom:6px;font-size:1em;">' + (u.title || '') + '</div>';
+          html += '<div style="color:#555;font-size:0.9em;line-height:1.5;">' + (u.summary || '') + '</div>';
+          if (u.accountRelevance) {
+            html += '<div style="margin-top:10px;border-left:3px solid #5845C2;padding:8px 12px;background:#f8f7ff;border-radius:4px;">';
+            html += '<div style="font-size:0.75em;text-transform:uppercase;color:#5845C2;font-weight:600;margin-bottom:2px;">Account Relevance</div>';
+            html += '<div style="color:#444;font-size:0.85em;">' + u.accountRelevance + '</div>';
+            html += '</div>';
+          }
+          html += '</div>';
+        });
+      }
+      html += '</div>';
+      panel.innerHTML = html;
+    }
 async function markRead(id,el){await sb.from('research_updates').update({is_read:true}).eq('id',id);el.classList.remove('unread')}
-function renderDashboard(panel){
-const data=sections.dashboard_actions?.data||{actions:[]};const actions=data.actions||[];
-let html='<div class="card"><h2><span class="icon">🎯</span> Key Actions</h2><table><tr><th>Action</th><th style="width:100px;">Owner</th><th style="width:90px;">Due</th><th style="width:80px;">Priority</th><th style="width:30px;"></th></tr>';
-actions.forEach((a,i)=>{html+='<tr><td><div contenteditable="true" class="editable" onblur="updateSectionField(\'dashboard_actions\',\'actions\','+i+',\'action\',this.textContent.trim())">'+a.action+'</div></td><td style="text-align:center;"><div contenteditable="true" class="editable" style="font-weight:600;color:var(--maki-purple);" onblur="updateSectionField(\'dashboard_actions\',\'actions\','+i+',\'owner\',this.textContent.trim())">'+a.owner+'</div></td><td style="text-align:center;"><div contenteditable="true" class="editable" style="color:#888;" onblur="updateSectionField(\'dashboard_actions\',\'actions\','+i+',\'due\',this.textContent.trim())">'+a.due+'</div></td><td style="text-align:center;"><select class="edit-select" onchange="updateSectionField(\'dashboard_actions\',\'actions\','+i+',\'priority\',this.value);renderSection(\'dashboard_actions\')"><option value="high"'+(a.priority==='high'?' selected':'')+'>High</option><option value="medium"'+(a.priority==='medium'?' selected':'')+'>Medium</option><option value="low"'+(a.priority==='low'?' selected':'')+'>Low</option></select></td><td><button class="btn-delete" onclick="deleteFromArray(\'dashboard_actions\',\'actions\','+i+')">×</button></td></tr>'});
-html+='</table><div style="padding:8px 16px;"><button class="btn-add" onclick="addToArray(\'dashboard_actions\',\'actions\',{id:Date.now(),action:\'New action\',owner:\'TBC\',due:\'TBC\',priority:\'medium\'})">+ Add action</button></div></div>';panel.innerHTML=html}
+function renderDashboard(panel) {
+      const contacts = sections.contacts?.data?.contacts || [];
+      const countries = sections.country_tracker?.data?.countries || [];
+      const hypotheses = sections.hypotheses?.data?.hypotheses || [];
+      const risks = sections.risk_register?.data?.risks || [];
+      const competitors = sections.competitive_intel?.data?.competitors || [];
+      const callPreps = sections.call_prep?.data?.preps || [];
+      const actionPlan = sections.action_plan?.data?.phases || [];
+      const researchData = sections.research_feed?.data?.updates || window.researchUpdates || [];
+      const dims = [
+        {name:'Contacts',weight:15,score:Math.min(contacts.length/5,1)*100},
+        {name:'Countries',weight:15,score:Math.min(countries.length/3,1)*100},
+        {name:'Hypotheses',weight:15,score:Math.min(hypotheses.length/3,1)*100},
+        {name:'Risks',weight:10,score:Math.min(risks.length/3,1)*100},
+        {name:'Competitors',weight:10,score:Math.min(competitors.length/2,1)*100},
+        {name:'Call Preps',weight:10,score:Math.min(callPreps.length/2,1)*100},
+        {name:'Action Plan',weight:15,score:Math.min(actionPlan.length/2,1)*100},
+        {name:'Research',weight:10,score:Math.min(researchData.length/3,1)*100}
+      ];
+      const healthScore = Math.round(dims.reduce((s,d) => s + (d.score * d.weight / 100), 0));
+      const scoreColor = healthScore >= 80 ? '#22c55e' : healthScore >= 50 ? '#f59e0b' : '#ef4444';
+      const circumference = 2 * Math.PI * 54;
+      const offset = circumference - (healthScore / 100) * circumference;
+      let html = '<div class="card"><h2><span class="icon">\u{1F4CA}</span> Account Dashboard</h2>';
+      html += '<div style="display:grid;grid-template-columns:200px 1fr;gap:24px;margin-bottom:24px;">';
+      html += '<div style="text-align:center;">';
+      html += '<svg width="140" height="140" viewBox="0 0 120 120"><circle cx="60" cy="60" r="54" fill="none" stroke="#e5e7eb" stroke-width="8"/>';
+      html += '<circle cx="60" cy="60" r="54" fill="none" stroke="' + scoreColor + '" stroke-width="8" stroke-linecap="round" stroke-dasharray="' + circumference + '" stroke-dashoffset="' + offset + '" transform="rotate(-90 60 60)"/>';
+      html += '<text x="60" y="55" text-anchor="middle" font-size="28" font-weight="700" fill="' + scoreColor + '">' + healthScore + '</text>';
+      html += '<text x="60" y="72" text-anchor="middle" font-size="10" fill="#666">Health Score</text></svg>';
+      html += '<div style="margin-top:8px;font-size:0.85em;color:#666;">Plan Completeness</div></div>';
+      html += '<div>';
+      dims.forEach(d => {
+        const barColor = d.score >= 80 ? '#22c55e' : d.score >= 50 ? '#f59e0b' : '#ef4444';
+        html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">';
+        html += '<div style="width:90px;font-size:0.8em;color:#555;text-align:right;">' + d.name + '</div>';
+        html += '<div style="flex:1;background:#f3f4f6;border-radius:4px;height:14px;overflow:hidden;">';
+        html += '<div style="width:' + d.score + '%;height:100%;background:' + barColor + ';border-radius:4px;transition:width 0.5s;"></div></div>';
+        html += '<div style="width:35px;font-size:0.75em;color:#666;">' + Math.round(d.score) + '%</div></div>';
+      });
+      html += '</div></div>';
+      html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;">';
+      html += '<div style="background:#f8f7ff;padding:16px;border-radius:8px;text-align:center;"><div style="font-size:1.8em;font-weight:700;color:#5845C2;">' + contacts.length + '</div><div style="font-size:0.8em;color:#666;">Contacts</div></div>';
+      html += '<div style="background:#f0fdf4;padding:16px;border-radius:8px;text-align:center;"><div style="font-size:1.8em;font-weight:700;color:#059669;">' + countries.length + '</div><div style="font-size:0.8em;color:#666;">Countries</div></div>';
+      const openActions = actionPlan.reduce((c,p) => c + (p.actions||[]).filter(a => a.status !== 'Complete').length, 0);
+      html += '<div style="background:#fffbeb;padding:16px;border-radius:8px;text-align:center;"><div style="font-size:1.8em;font-weight:700;color:#d97706;">' + openActions + '</div><div style="font-size:0.8em;color:#666;">Open Actions</div></div>';
+      html += '<div style="background:#fef2f2;padding:16px;border-radius:8px;text-align:center;"><div style="font-size:1.8em;font-weight:700;color:#ef4444;">' + researchData.length + '</div><div style="font-size:0.8em;color:#666;">Research Items</div></div>';
+      html += '</div>';
+      const allActions = [];
+      actionPlan.forEach(p => (p.actions||[]).forEach(a => { if(a.status !== 'Complete') allActions.push({...a, phase: p.name}); }));
+      const priorityOrder = {Critical:0,High:1,Medium:2,Low:3};
+      allActions.sort((a,b) => (priorityOrder[a.priority]||9) - (priorityOrder[b.priority]||9));
+      const topActions = allActions.slice(0,5);
+      if (topActions.length > 0) {
+        html += '<div style="margin-bottom:24px;"><h3 style="font-size:1em;margin-bottom:10px;">\u{26A1} Critical Next Actions</h3>';
+        html += '<table style="width:100%;border-collapse:collapse;font-size:0.85em;">';
+        html += '<tr style="background:#f9fafb;"><th style="padding:8px;text-align:left;border-bottom:2px solid #e5e7eb;">Action</th><th style="padding:8px;text-align:left;border-bottom:2px solid #e5e7eb;">Owner</th><th style="padding:8px;text-align:left;border-bottom:2px solid #e5e7eb;">Priority</th><th style="padding:8px;text-align:left;border-bottom:2px solid #e5e7eb;">Due</th></tr>';
+        topActions.forEach(a => {
+          const pc = a.priority === 'Critical' ? '#ef4444' : a.priority === 'High' ? '#f59e0b' : '#22c55e';
+          html += '<tr style="border-bottom:1px solid #f3f4f6;"><td style="padding:8px;">' + (a.action||'') + '</td><td style="padding:8px;">' + (a.owner||'') + '</td>';
+          html += '<td style="padding:8px;"><span style="background:' + pc + '22;color:' + pc + ';padding:2px 8px;border-radius:10px;font-size:0.85em;font-weight:600;">' + (a.priority||'') + '</span></td>';
+          html += '<td style="padding:8px;color:#666;">' + (a.due||'') + '</td></tr>';
+        });
+        html += '</table></div>';
+      }
+      if (researchData.length > 0) {
+        const topResearch = [...researchData].sort((a,b) => (b.date||'').localeCompare(a.date||'')).slice(0,3);
+        html += '<div><h3 style="font-size:1em;margin-bottom:10px;">\u{1F4E1} Latest Intelligence</h3>';
+        topResearch.forEach(u => {
+          const impColor = u.impact === 'high' ? '#ef4444' : u.impact === 'medium' ? '#f59e0b' : '#22c55e';
+          html += '<div style="display:flex;align-items:start;gap:10px;padding:8px 0;border-bottom:1px solid #f3f4f6;">';
+          html += '<span style="background:' + impColor + '22;color:' + impColor + ';padding:2px 6px;border-radius:6px;font-size:0.7em;font-weight:600;white-space:nowrap;margin-top:2px;">' + (u.impact||'').toUpperCase() + '</span>';
+          html += '<div><div style="font-weight:600;font-size:0.9em;">' + (u.title||'') + '</div>';
+          html += '<div style="color:#666;font-size:0.8em;margin-top:2px;">' + (u.summary||'').substring(0,120) + '...</div></div></div>';
+        });
+        html += '</div>';
+      }
+      html += '</div>';
+      panel.innerHTML = html;
+    }
 function renderOrgMap(panel){
 const data=sections.org_map?.data||{contacts:[]};const contacts=data.contacts||[];
 let html='<div class="card"><h2><span class="icon">👥</span> Key Contacts</h2><table><tr><th>Name</th><th>Title</th><th>Country</th><th>Relationship</th><th>Notes</th><th style="width:30px;"></th></tr>';
@@ -148,7 +260,46 @@ scenarios.forEach((s,i)=>{const rev=s.countries*s.assessmentsPerCountry*s.priceP
 html+='<tr><td style="font-weight:600;">'+s.name+'</td><td style="text-align:center;"><div contenteditable="true" class="editable" onblur="updateSectionField(\'revenue_model\',\'scenarios\','+i+',\'countries\',parseInt(this.textContent)||0)">'+s.countries+'</div></td><td style="text-align:center;"><div contenteditable="true" class="editable" onblur="updateSectionField(\'revenue_model\',\'scenarios\','+i+',\'assessmentsPerCountry\',parseInt(this.textContent)||0)">'+s.assessmentsPerCountry+'</div></td><td style="text-align:center;">€'+s.pricePerAssessment+'</td><td style="text-align:center;font-weight:700;color:var(--maki-purple);">€'+rev.toLocaleString()+'</td></tr>'});
 html+='</table></div>';panel.innerHTML=html}
 function renderHypotheses(panel){const data=sections.hypotheses?.data||{hypotheses:[]};const hyps=data.hypotheses||[];let html='<div class="card"><h2><span class="icon">🔬</span> Strategic Hypotheses</h2>';hyps.forEach((h,i)=>{html+='<div style="padding:12px;border-radius:8px;background:var(--maki-grey-light);margin-bottom:8px;"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;"><div contenteditable="true" class="editable" style="font-weight:600;font-size:13px;flex:1;" onblur="updateSectionField(\'hypotheses\',\'hypotheses\','+i+',\'hypothesis\',this.textContent.trim())">'+h.hypothesis+'</div><select class="edit-select" style="margin-left:8px;" onchange="updateSectionField(\'hypotheses\',\'hypotheses\','+i+',\'status\',this.value);renderSection(\'hypotheses\')">';['Unvalidated','Testing','Validated','Disproven'].forEach(s=>{html+='<option value="'+s+'"'+(h.status===s?' selected':'')+'>'+s+'</option>'});html+='</select></div><div contenteditable="true" class="editable" style="font-size:12px;color:#666;" onblur="updateSectionField(\'hypotheses\',\'hypotheses\','+i+',\'evidence\',this.textContent.trim())">'+(h.evidence||'')+'</div></div>'});html+='<button class="btn-add" onclick="addToArray(\'hypotheses\',\'hypotheses\',{id:Date.now(),hypothesis:\'New hypothesis\',status:\'Unvalidated\',evidence:\'\'})">+ Add hypothesis</button></div>';panel.innerHTML=html}
-function renderCallPrep(panel){let html='<div class="card"><h2><span class="icon">📞</span> Call Preparation</h2><div class="empty-state"><div class="icon">📞</div><p>Call prep notes will appear here.</p></div></div>';panel.innerHTML=html}
+function renderCallPrep(panel) {
+      const data = sections.call_prep?.data || {preps: []};
+      const preps = data.preps || [];
+      let html = '<div class="card"><h2><span class="icon">\u{1F4DE}</span> Call Preparation</h2>';
+      if (preps.length === 0) {
+        html += '<div style="text-align:center;padding:40px;color:#aaa;"><p style="font-size:2em;">\u{1F4DE}</p><p>No call prep items yet.</p><p style="font-size:0.85em;">Add stakeholder prep via the Supabase dashboard or API.</p></div>';
+      } else {
+        preps.forEach(p => {
+          const isObj = (p.topic || '').toLowerCase().includes('objection');
+          const bdrC = isObj ? '#ef4444' : '#5845C2';
+          const bgC = isObj ? '#fef2f2' : '#f8f7ff';
+          const ico = isObj ? '\u{1F6E1}' : '\u{1F3AF}';
+          html += '<div style="border-left:4px solid ' + bdrC + ';background:' + bgC + ';padding:16px;margin:12px 0;border-radius:8px;">';
+          html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">';
+          html += '<span style="font-size:1.3em;">' + ico + '</span>';
+          html += '<strong style="font-size:1.05em;">' + (p.stakeholder || 'General') + '</strong>';
+          html += '<span style="color:#666;font-size:0.9em;margin-left:4px;">' + (p.topic || '') + '</span>';
+          if (isObj) html += '<span style="background:#ef4444;color:white;padding:2px 8px;border-radius:10px;font-size:0.75em;font-weight:600;">OBJECTION</span>';
+          html += '</div>';
+          if (p.keyQuestions) {
+            const qs = p.keyQuestions.split('?').filter(q => q.trim());
+            if (qs.length > 0) {
+              html += '<div style="margin-bottom:10px;">';
+              html += '<div style="font-size:0.8em;text-transform:uppercase;color:#666;margin-bottom:4px;font-weight:600;">Key Questions</div>';
+              qs.forEach(q => { html += '<div style="font-style:italic;color:#444;padding:2px 0;">\u201C' + q.trim() + '?\u201D</div>'; });
+              html += '</div>';
+            }
+          }
+          if (p.talkingPoints) {
+            html += '<div style="border-left:3px solid #5845C2;padding:8px 12px;background:white;border-radius:4px;margin-top:8px;">';
+            html += '<div style="font-size:0.8em;text-transform:uppercase;color:#5845C2;margin-bottom:4px;font-weight:600;">' + (isObj ? 'Response Strategy' : 'Talking Points') + '</div>';
+            html += '<div style="color:#333;line-height:1.5;">' + p.talkingPoints + '</div>';
+            html += '</div>';
+          }
+          html += '</div>';
+        });
+      }
+      html += '</div>';
+      panel.innerHTML = html;
+    }
 function renderRiskRegister(panel){const data=sections.risk_register?.data||{risks:[]};const risks=data.risks||[];let html='<div class="card"><h2><span class="icon">⚠️</span> Risk Register</h2><table><tr><th>Risk</th><th style="width:80px;">Impact</th><th style="width:80px;">Likelihood</th><th>Mitigation</th><th style="width:30px;"></th></tr>';risks.forEach((r,i)=>{html+='<tr><td><div contenteditable="true" class="editable" onblur="updateSectionField(\'risk_register\',\'risks\','+i+',\'risk\',this.textContent.trim())">'+r.risk+'</div></td><td><select class="edit-select" onchange="updateSectionField(\'risk_register\',\'risks\','+i+',\'impact\',this.value)">';['high','medium','low'].forEach(v=>{html+='<option value="'+v+'"'+(r.impact===v?' selected':'')+'>'+v.charAt(0).toUpperCase()+v.slice(1)+'</option>'});html+='</select></td><td><select class="edit-select" onchange="updateSectionField(\'risk_register\',\'risks\','+i+',\'likelihood\',this.value)">';['high','medium','low'].forEach(v=>{html+='<option value="'+v+'"'+(r.likelihood===v?' selected':'')+'>'+v.charAt(0).toUpperCase()+v.slice(1)+'</option>'});html+='</select></td><td><div contenteditable="true" class="editable" style="font-size:12px;color:#666;" onblur="updateSectionField(\'risk_register\',\'risks\','+i+',\'mitigation\',this.textContent.trim())">'+(r.mitigation||'')+'</div></td><td><button class="btn-delete" onclick="deleteFromArray(\'risk_register\',\'risks\','+i+')">×</button></td></tr>'});html+='</table><div style="padding:8px 16px;"><button class="btn-add" onclick="addToArray(\'risk_register\',\'risks\',{id:Date.now(),risk:\'New risk\',impact:\'medium\',likelihood:\'medium\',mitigation:\'\'})">+ Add risk</button></div></div>';panel.innerHTML=html}
 function renderCompetitive(panel){const data=sections.competitive?.data||{competitors:[]};const comps=data.competitors||[];let html='<div class="card"><h2><span class="icon">🏁</span> Competitive Landscape</h2><table><tr><th>Competitor</th><th>Strengths</th><th>Weaknesses</th><th style="width:80px;">Threat</th><th style="width:30px;"></th></tr>';comps.forEach((c,i)=>{html+='<tr><td style="font-weight:600;"><div contenteditable="true" class="editable" onblur="updateSectionField(\'competitive\',\'competitors\','+i+',\'name\',this.textContent.trim())">'+c.name+'</div></td><td><div contenteditable="true" class="editable" style="font-size:12px;" onblur="updateSectionField(\'competitive\',\'competitors\','+i+',\'strengths\',this.textContent.trim())">'+(c.strengths||'')+'</div></td><td><div contenteditable="true" class="editable" style="font-size:12px;" onblur="updateSectionField(\'competitive\',\'competitors\','+i+',\'weaknesses\',this.textContent.trim())">'+(c.weaknesses||'')+'</div></td><td><select class="edit-select" onchange="updateSectionField(\'competitive\',\'competitors\','+i+',\'threat\',this.value)">';['high','medium','low'].forEach(v=>{html+='<option value="'+v+'"'+(c.threat===v?' selected':'')+'>'+v.charAt(0).toUpperCase()+v.slice(1)+'</option>'});html+='</select></td><td><button class="btn-delete" onclick="deleteFromArray(\'competitive\',\'competitors\','+i+')">×</button></td></tr>'});html+='</table><div style="padding:8px 16px;"><button class="btn-add" onclick="addToArray(\'competitive\',\'competitors\',{name:\'New Competitor\',strengths:\'\',weaknesses:\'\',threat:\'medium\'})">+ Add competitor</button></div></div>';panel.innerHTML=html}
 function renderProofPoints(panel){const data=sections.proof_points?.data||{proofPoints:[]};const points=data.proofPoints||[];let html='<div class="card"><h2><span class="icon">✅</span> Proof Points</h2>';points.forEach((p,i)=>{html+='<div style="padding:12px;border-radius:8px;background:var(--maki-grey-light);margin-bottom:8px;display:flex;justify-content:space-between;"><div style="flex:1;"><div contenteditable="true" class="editable" style="font-weight:600;font-size:13px;" onblur="updateSectionField(\'proof_points\',\'proofPoints\','+i+',\'title\',this.textContent.trim())">'+p.title+'</div><span class="status-badge status-active" style="margin:4px 0;display:inline-block;">'+(p.type||'Evidence')+'</span><div contenteditable="true" class="editable" style="font-size:12px;color:#666;margin-top:4px;" onblur="updateSectionField(\'proof_points\',\'proofPoints\','+i+',\'detail\',this.textContent.trim())">'+(p.detail||'')+'</div></div><button class="btn-delete" onclick="deleteFromArray(\'proof_points\',\'proofPoints\','+i+')">×</button></div>'});html+='<button class="btn-add" onclick="addToArray(\'proof_points\',\'proofPoints\',{id:Date.now(),title:\'New proof point\',type:\'Evidence\',detail:\'\'})">+ Add proof point</button></div>';panel.innerHTML=html}
